@@ -1,0 +1,9 @@
+*.o
+*.elf
+*.SAV
+build
+data
+savefiles
+installDSiLink.nds
+classichack/cwgsum*
+cookhack/cooksum*

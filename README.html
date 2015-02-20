@@ -1,0 +1,133 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>DS(i)Link</title>
+<style type="text/css">
+
+body {
+	background-color: #277CB3;
+}
+
+.Page {
+	width: 800px;
+	margin: 20px auto;
+	background-color: #fff;
+	font-size: 1.3em;
+	padding: 20px;
+	padding-bottom: 10px;
+}
+
+.solid-error{
+	background:#CC0000;
+	color:#FFFFFF;
+	font-weight:bold;
+	padding:4px;
+	text-align:center;
+}
+
+</style>
+</head><body>
+<div class="Page">
+<div class="solid-error">
+<h1>WARNING</h1>
+<p>Use of this software will most probably invalidate your console
+warranty, proceed with installation at your own risk. The software
+installs in an unused portion of the flash chip on the wifi module but
+is still what Nintendo term an unauthorised modification.</p></div>
+<h3>LICENSE</h3>
+<p>Copyright (c) 2010 - 2015 Dave Murphy</p>
+<p>Any redistribution or reproduction of part or all this software in any form is prohibited other than the following:
+</p><ul>
+<li>You may make as many copies of the software as you require for your own personal use.</li>
+<li>You may copy the complete, unmodified archive to individual third
+parties for their personal use, but may not place it on websites or
+torrent trackers.</li>
+</ul>
+You may not, except with my express written permission, distribute or
+commercially exploit the software. Nor may you transmit it or store it
+in any other website.
+
+<p>The Software shall be used for Good, not Evil.<br><br>
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+<h3>Overview</h3>
+<p>dslink is a simple and effective method to transfer homebrew games
+and applications to your DS(i) over wifi. Simply run dslink.nds on your
+DS console, wait for it to connect and use the command line dslink host
+tool to send an nds file.
+</p><pre>	dslink [-a ip address] &lt;ndsfile&gt;
+</pre>
+<p>
+</p><p>The dslink host uses UDP broadcast messages to discover your DS
+but this won't work for some people due to routers either not passing on
+ these packets or sending them at a speed the DS can't read. If you get
+"No Response from DS!" then try specifiying the ip address of your DS
+with the -a switch.</p>
+<h3>DSi mode</h3>
+<p>Here's the part most people will probably be interested in, homebrew running in DSi mode.</p>
+<p>While playing around with the <a href="">save game exploits</a> for Cooking Coach
+ and Classic Word Games I created back in 2010 I discovered two things
+ about the flashchip on the wifi module where the firmware would be stored
+ on a normal DS. (1) It contains only the setup data for wifi, the user settings
+ and the wifi connection settings and, (2) Part of it is writable, from DS mode. This
+was what finally gave me the motivation to revisit an old project to
+upload homebrew to the DS over wifi.</p>
+<p>installDSiLink.nds will, when run from a DSi compatible card in DS
+mode, write the dslink client to the wifi flash chip and this can then
+be bootstrapped from the save game exploits mentioned above. You'll need
+ to write the appropriate .SAV file from this archive to your game of
+choice from either a DS with <a href="http://blog.davr.org/2007/03/31/eepinator/">eepinator</a>
+ or use one of the save game transfer devices around. Cooking Coach is
+more convenient since the exploit kicks in just after the splash screen,
+ with Classic Word Games you need to go through a couple of menu
+options.</p>
+<p>Unfortunately testing revealed that later model DSi and XL consoles
+have had changes made to the wifi board which means that writing to the
+ firmware flash chip is no longer possible. You'll know if you have one
+of these consoles if either the installer fails to write the loader or
+the loader fails to connect when bootstrapped. Sorry if you have one of
+these consoles, you'll have to wait a little bit longer to play with DSi
+ mode.</p>
+<p>In March 2012 Nintendo released firmware version 1.4.4 which checks for these
+exploits and writes a 0 to the end of the string before launching the games.
+<p>At the end of 2014 we found another exploitable DSi hybrid game - The Biggest Loser USA
+and this archive now contains save file exploits for the EU and US versions. This time
+I haven't made this exploit code public - last time Cooking Coach was used
+to create a piracy device.</p>
+<p>libnds still needs some more updates to deal with DSi mode features,
+currently the swi decompression functions seem to have changed and we
+have no microphone input. Hopefully now there's a reasonably
+straightforward way to run code we can get a few more people looking at
+what we need to change and how best to approach it.</p>
+<h3>Archive Listing</h3>
+<p>
+</p><ul>
+<li>README.html - this file.</li>
+<li>savefiles/VBLE.SAV - save game for The Biggest Loser, US version.</li>
+<li>savefiles/VBLV.SAV - save game for The Biggest Loser, UK/EU version.</li>
+<li>savefiles/VCKE.SAV - save game for Cooking Coach, US version.</li>
+<li>savefiles/VCKS.SAV - save game for Cooking Coach, Spanish version.</li>
+<li>savefiles/VCKV.SAV - save game for Cooking Coach, UK/EU version.</li>
+<li>savefiles/VCKF.SAV - save game for Cooking Coach, French version.</li>
+<li>savefiles/VCKI.SAV - save game for Cooking Coach, Italian version.</li>
+<li>savefiles/VCKD.SAV - save game for Cooking Coach, German version.</li>
+<li>savefiles/VCWE.SAV - save game for Classic Word Games, US version.</li>
+<li>savefiles/VCWV.SAV - save game for Classic Word Games, UK/EU version.</li>
+<li>savefiles/VCWF.SAV - save game for Bravissi Mots, French version.</li>
+<li>installDSiLink.nds - writes the wifi loader to the wifi flash chip on DSi.</li>
+<li>dslink.nds - DS/DSi version of the wifi upload client.</li>
+<li>host/osx/dslink - host application compiled for Mac OSX, 10.4 universal binary.</li>
+<li>host/windows/dslink.exe - host application compiled for windows</li>
+<li>host/linux-x86/dslink - host application compiled for 32bit x86 linux</li>
+<li>host/linux-x86_64/dslink - host application compiled for 64bit x86 linux</li>
+</ul>
+
+</div>
+</body></html>
