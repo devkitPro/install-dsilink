@@ -1,6 +1,6 @@
 /*-----------------------------------------------------------------
 
- Copyright (C) 2010  Dave "WinterMute" Murphy
+ Copyright (C) 2010 - 2015 Dave "WinterMute" Murphy
 
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
@@ -17,64 +17,96 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 ------------------------------------------------------------------*/
+
+#define REG_BASE 0x04000000
+
 	.global	_start
-//-----------------------------------------------------------------
+@-----------------------------------------------------------------
 _start:
-//-----------------------------------------------------------------
-	b	_copystub
+@-----------------------------------------------------------------
+	b 	_boot
+fwheader:
+	.word	0	@ arm7 fw address
+	.word	0	@ arm7 load address
+	.word	0	@ arm7 size
+	.word	0	@ arm7 execute
+	
+	.word	0	@ arm9 fw address
+	.word	0	@ arm9 load address
+	.word	0	@ arm9 size
+	.word	0	@ arm9 execute
 
-_size:	.word	0
-_stubsize:	.word _loader - _bootstub
+@-----------------------------------------------------------------
+_boot:
+@-----------------------------------------------------------------
+	bl	copystub
 
-_copystub:
+	adr	r12, fwheader
+
+	ldr	r1, [r12], #4
+	ldr	r0, [r12], #4
+	ldr	r2, [r12], #4
+	ldr	r3, [r12], #4
+
+	ldr	r4, =0x02FFFE34
+	str	r3, [r4]
+
+	bl	fwread
+
+	ldr	r1, [r12], #4
+	ldr	r0, [r12], #4
+	ldr	r2, [r12], #4
+
+	bl	fwread
+
+	ldr	r3, [r12], #4
+	ldr	r4, =0x02FFFE24
+	str	r3, [r4]
+
+	ldr	r4, =0x02FFFE34
+	ldr	r4, [r4]
+	bx	r4
+
+@-----------------------------------------------------------------
+copystub:
+@-----------------------------------------------------------------
 	mov	r0, #0x03000000
 	sub	r0, r0, #0xc000
 	adr	r1, _bootstub
+
+@-----------------------------------------------------------------
+@ adjust arm9 code address
+@-----------------------------------------------------------------
 	ldr	r2, [r1,#8]
 	add	r2, r2, r0
 	str	r2, [r1,#8]
+
+@-----------------------------------------------------------------
+@ adjust arm7 code address
+@-----------------------------------------------------------------
 	ldr	r2, [r1,#12]
 	add	r2, r2, r0
 	str	r2, [r1,#12]
 
-	ldr	r2, _size
-	adr	r3, _loader_size
-	str	r2, [r3]
-	add	r2, r0, r2
-	ldr	r3, _stubsize
-	add	r2, r2, r3
+	adr	r2, arm7_end
 
 1:	ldr	r3, [r1],#4
 	str	r3, [r0],#4
-	cmp	r2, r0
+	cmp	r1, r2
 	bne	1b
 
-	adr	r0, _loader
-	ldr	r2, _loader_size
-	mov	r1, #0x06000000
-	add	r2, r0, r2
-2:
-	ldr	r4, [r0], #4
-	str	r4, [r1], #4
-	cmp	r0, r2
-	bne	2b
+	bx	lr
 
-	mov	r1, #0x06000000
-	bx	r1
-
+@-----------------------------------------------------------------
 _bootstub:
+@-----------------------------------------------------------------
 	.ascii	"bootstub"
 	.word	hook7from9 - _bootstub
 	.word	hook9from7 - _bootstub
-_loader_size:
-	.word	0
 
 //-----------------------------------------------------------------
 hook9from7:
 //-----------------------------------------------------------------
-	ldr	r0, arm9bootaddr
-	adr	r1, hook7from9
-	str	r1, [r0]
 
 	adr	r0, waitcode_start
 	ldr	r1, arm7base
@@ -88,15 +120,21 @@ hook9from7:
 	ldr	r0, resetcode
 	str	r0, [r3, #0x188]
 	add	r3, r3, #0x180
-	ldr	r1, arm7base
+
+	adr	r11, enter_passme_loop
+	ldr	r1, =0x037f8000
 	bx	r1
 
-//-----------------------------------------------------------------
+	.pool
+
+@-----------------------------------------------------------------
 waitcode_start:
-//-----------------------------------------------------------------
-	push	{lr}
+@-----------------------------------------------------------------
 	mov	r2, #1
 	bl	waitsync
+
+	ldr	r0, =0x02FFFE24
+	str	r11, [r0]
 
 	mov	r0, #0x100
 	strh	r0, [r3]
@@ -104,11 +142,20 @@ waitcode_start:
 	mov	r2, #0
 	bl	waitsync
 
+	mov	r11, r11
+
 	mov	r0, #0
 	strh	r0, [r3]
-	pop	{lr}
 
+	mov	r2, #5
+	bl	waitsync
+
+	mov	r11, r11
+
+	ldr	lr, =0x02380000
 	bx	lr
+
+	.pool
 
 waitsync:
 	ldrh	r0, [r3]
@@ -124,18 +171,76 @@ arm7bootaddr:
 	.word	0x02FFFE34
 arm9bootaddr:
 	.word	0x02FFFE24
-tcmpudisable:
-	.word	0x2078
 
 resetcode:
 	.word	0x0c04000c
-hook7from9:
-	mov	r12, #0x04000000
-	str	r12, [r12,#0x208]
 
 	.arch	armv5te
 	.cpu	arm946e-s
 
+@-----------------------------------------------------------------
+copy_arm7_code:
+@-----------------------------------------------------------------
+
+	ldr	r1, =0x02380000
+	ldr	r0, arm7bootaddr
+	str	r1, [r0]
+
+	adr	r0, arm7_start
+	adr	r2, arm7_end
+_copyloader:
+	ldr	r4, [r0], #4
+	str	r4, [r1], #4
+	cmp	r0, r2
+	blt	_copyloader
+	bx	lr
+
+@-----------------------------------------------------------------
+hook7from9:
+@-----------------------------------------------------------------
+	mov	r12, #REG_BASE
+	str	r12, [r12,#0x208]
+
+	add	r3, r12, #0x180		@ r3 = 4000180 (REG_IPCSYNC)
+
+	mov	r0, #0
+	strh	r0, [r3]
+
+	ldr	r0, resetcode
+	str	r0, [r12, #0x188]
+
+	mov	r2, #1
+	bl	waitsync
+
+	bl	copy_arm7_code
+
+	mov	r0, #0x100
+	strh	r0, [r3]
+
+	mov	r2, #5
+	bl	waitsync
+
+	mov	r0,#0x82
+	strb	r0,[r3,#0x242-0x180]
+
+	b	passme_loop
+
+@-----------------------------------------------------------------
+enter_passme_loop:
+@-----------------------------------------------------------------
+	mov	r12, #REG_BASE
+	str	r12, [r12,#0x208]
+
+	add	r3, r12, #0x180		@ r3 = 4000180 (REG_IPCSYNC)
+
+	mov	r0,#0x82
+	strb	r0,[r3,#0x242-0x180]
+
+	bl	copy_arm7_code
+
+@-----------------------------------------------------------------
+passme_loop:
+@-----------------------------------------------------------------
 	ldr	r1, tcmpudisable		@ disable TCM and protection unit
 	mcr	p15, 0, r1, c1, c0
 
@@ -148,52 +253,18 @@ hook7from9:
 	@ Wait for write buffer to empty
 	mcr	p15, 0, r0, c7, c10, 4
 
-	add	r3, r12, #0x180		@ r3 = 4000180
-
-	mov	r0,#0x80
-	strb	r0,[r3,#0x242-0x180]
-
-	adr	r0, _loader
-	ldr	r2, _loader_size
-	mov	r1, #0x06800000
-	add	r1, r1, #0x40000
-	add	r2, r0, r2
-_copyloader:
-	ldr	r4, [r0], #4
-	str	r4, [r1], #4
-	cmp	r0, r2
-	blt	_copyloader
-
-	mov	r0,#0x82
-	strb	r0,[r3,#0x242-0x180]
-
-// set up passme loop
+@-----------------------------------------------------------------
+@ set up and enter passme loop
+@-----------------------------------------------------------------
 
 	ldr	r0,arm9branchaddr
 	ldr	r1,branchinst
 	str	r1,[r0]
 	str	r0,[r0,#0x20]
 
-	ldr	r0, arm7bootaddr
-	mov	r1, #0x06000000
-	str	r1, [r0]
+	mov	r1, #0x500
+	strh	r1, [r3]
 
-	ldr	r0, resetcode
-	str	r0, [r12, #0x188]
-
-	mov	r2, #1
-	bl	waitsync
-
-	mov	r0, #0x100
-	strh	r0, [r3]
-
-	mov	r2, #0
-	bl	waitsync
-
-	mov	r0, #0
-	strh	r0, [r3]
-
-	ldr	r0,arm9branchaddr
 	bx	r0
 
 branchinst:
@@ -202,5 +273,108 @@ branchinst:
 arm9branchaddr:
 	.word 0x02fffe04
 
+tcmpudisable:
+	.word	0x2078
+	.arch	armv4t
+	.cpu	arm7tdmi
 
-_loader:
+@-----------------------------------------------------------------
+arm7_start:
+@-----------------------------------------------------------------
+	mov	r12, #REG_BASE
+	str	r12, [r12, #0x208]	@ IME = 0;
+
+	adr	r1,arm7_boot
+	adr	r3,arm7_end
+	ldr	r2,=0x03800000
+	mov	r4, r2
+1:
+	ldr	r0,[r1],#4
+	str	r0,[r2],#4
+	cmp	r1,r3
+	bne	1b
+
+	bx	r4
+
+	.pool
+
+@-----------------------------------------------------------------
+arm7_boot:
+@-----------------------------------------------------------------
+	add	r3, r12, #0x180
+	mov	r0,#0x500
+	strh	r0,[r3]
+
+waitfor9:
+	ldrh	r0, [r3]
+	and	r0, r0, #0x000f
+	cmp	r0, #5
+	bne	waitfor9
+
+	b	fwload
+
+@-----------------------------------------------------------------
+writeread:
+@-----------------------------------------------------------------
+	and 	r0, r0, #0xff
+	strh	r0, [r3, #0xc2]
+.L2:
+	ldrh	r2, [r3, #0xc0]
+	tst	r2, #128
+	bne	.L2
+	ldrh	r0, [r3, #0xc2]
+	bx	lr
+
+	.pool
+
+@-----------------------------------------------------------------
+fwread:
+@-----------------------------------------------------------------
+@ r0 - destination
+@ r1 - firmware address
+@ r2 - size
+@-----------------------------------------------------------------
+	push 	{lr}
+	mov	r5, r0
+	mov	r6, r2
+	ldr	r3, =0x04000100
+	mov	r4, #0x8900
+	strh	r4, [r3, #0xc0]
+	mov	r0, #3		@
+	bl	writeread
+	mov	r0, r1,	lsr #16
+	bl	writeread
+	mov	r0, r1,	lsr #8
+	bl	writeread
+	mov	r0, r1
+	bl	writeread
+
+	add	r4, r5, r6
+.load:
+	mov	r0, #0
+	bl	writeread
+	strb	r0, [r5],#1
+	cmp	r4, r5
+	bne	.load
+
+	mov	r2, #0
+	strh	r2, [r3, #0xc0]
+
+	pop	{pc}
+
+	.pool
+
+@-----------------------------------------------------------------
+fwload:
+@-----------------------------------------------------------------
+	ldr	r0, =0x06008000
+	mov	r1, #0x10000
+	mov	r2, #2048
+	bl 	fwread
+
+	ldr	r4, =0x06008000
+	bx	r4
+
+	.pool
+
+arm7_end:

@@ -5,12 +5,11 @@
 
 #include "dslink_nds.h"
 #include "bootstub_bin.h"
-#include "fwboot_bin.h"
 
 
 struct fwheader {
-	int	arm7FWaddress, arm7load, arm7execute, arm7size;
-	int	arm9FWaddress, arm9load, arm9execute, arm9size;
+	int	arm7FWaddress, arm7load, arm7size, arm7execute;
+	int	arm9FWaddress, arm9load, arm9size, arm9execute;
 };
 
 char booter[2048];
@@ -50,11 +49,8 @@ void installDSiLink() {
 	tNDSHeader *ndsfile = (tNDSHeader *)dslink_nds;
 
 	memcpy(booter,bootstub_bin,bootstub_bin_size);
-	memcpy(&booter[bootstub_bin_size],fwboot_bin,fwboot_bin_size);
 
-	struct fwheader *fwhdr = (struct fwheader*)(&booter[bootstub_bin_size + 4]);
-
-	*(u32*)(&booter[4])=fwboot_bin_size;
+	struct fwheader *fwhdr = (struct fwheader*)(&booter[4]);
 
 	fwhdr->arm7load = ndsfile->arm7destination;
 	fwhdr->arm7execute = ndsfile->arm7executeAddress;
