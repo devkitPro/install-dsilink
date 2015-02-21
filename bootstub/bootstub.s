@@ -142,15 +142,11 @@ waitcode_start:
 	mov	r2, #0
 	bl	waitsync
 
-	mov	r11, r11
-
 	mov	r0, #0
 	strh	r0, [r3]
 
 	mov	r2, #5
 	bl	waitsync
-
-	mov	r11, r11
 
 	ldr	lr, =0x02380000
 	bx	lr
