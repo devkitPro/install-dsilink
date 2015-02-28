@@ -107,22 +107,26 @@ _bootstub:
 //-----------------------------------------------------------------
 hook9from7:
 //-----------------------------------------------------------------
+	mov	r12, #REG_BASE
+	mov	r0, #0
+	str	r0, [r12, #0x208]
+
+
+	mov	r0, #0xc200              @ enable FIFO, clear error, enable irq
+	orr	r0, #8                   @ flush send FIFO
+	str	r0, [r12, #0x184]
 
 	adr	r0, waitcode_start
-	ldr	r1, arm7base
+	mov	r1, #0x03800000
 	adr	r2, waitcode_end
 1:	ldr	r4, [r0],#4
 	str	r4, [r1],#4
 	cmp	r2, r0
 	bne	1b
 
-	mov	r3, #0x04000000
-	ldr	r0, resetcode
-	str	r0, [r3, #0x188]
-	add	r3, r3, #0x180
-
 	adr	r11, enter_passme_loop
-	ldr	r1, =0x037f8000
+	ldr	r0, resetcode
+	mov	r1, #0x03800000
 	bx	r1
 
 	.pool
@@ -130,6 +134,10 @@ hook9from7:
 @-----------------------------------------------------------------
 waitcode_start:
 @-----------------------------------------------------------------
+	mov	r3, #0x04000000
+	str	r0, [r3, #0x188]
+	add	r3, r3, #0x180
+
 	mov	r2, #1
 	bl	waitsync
 
@@ -161,10 +169,6 @@ waitsync:
 	bx	lr
 waitcode_end:
 
-arm7base:
-	.word	0x037f8000
-arm7bootaddr:
-	.word	0x02FFFE34
 arm9bootaddr:
 	.word	0x02FFFE24
 
@@ -179,7 +183,7 @@ copy_arm7_code:
 @-----------------------------------------------------------------
 
 	ldr	r1, =0x02380000
-	ldr	r0, arm7bootaddr
+	ldr	r0, =0x02FFFE34
 	str	r1, [r0]
 
 	adr	r0, arm7_start
@@ -189,13 +193,36 @@ _copyloader:
 	str	r4, [r1], #4
 	cmp	r0, r2
 	blt	_copyloader
+
+
+	ldr	r0, =0x02380000
+	ldr	r1, arm7size
+	add 	r1, r1, r0
+.flush:
+	mcr	p15, 0, r0, c7, c14, 1		@ clean and flush address
+	add	r0, r0, #32
+	cmp	r0, r1
+	blt	.flush
+
+	mov     r0, #0
+	mcr     p15, 0, r0, c7, c10, 4		@ drain write buffer
+
 	bx	lr
+
+arm7size:
+	.word	arm7_end - arm7_start
+	.pool
 
 @-----------------------------------------------------------------
 hook7from9:
 @-----------------------------------------------------------------
 	mov	r12, #REG_BASE
-	str	r12, [r12,#0x208]
+	mov	r0, #0
+	str	r0, [r12, #0x208]
+
+	mov	r0, #0xc200             @ enable FIFO, clear error, enable irq
+	orr	r0, #8                  @ flush send FIFO
+	str	r0, [r12, #0x184]
 
 	add	r3, r12, #0x180		@ r3 = 4000180 (REG_IPCSYNC)
 
@@ -271,6 +298,7 @@ arm9branchaddr:
 
 tcmpudisable:
 	.word	0x2078
+
 	.arch	armv4t
 	.cpu	arm7tdmi
 
@@ -336,7 +364,7 @@ fwread:
 	ldr	r3, =0x04000100
 	mov	r4, #0x8900
 	strh	r4, [r3, #0xc0]
-	mov	r0, #3		@
+	mov	r0, #3
 	bl	writeread
 	mov	r0, r1,	lsr #16
 	bl	writeread
