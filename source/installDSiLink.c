@@ -86,12 +86,25 @@ void installDSiLink() {
 
 }
 
+char firmware_buffer[512];
+
 int main(int argc, char ** argv) {
 
 
 	consoleDemoInit();
 	iprintf("DSi dslink installer.\n\n");
-	iprintf("Press A,B,X,Y to install.\n\n");
+
+	readFirmware(0, firmware_buffer, 512);
+
+	bool onDSi = (firmware_buffer[29] == 0x57);
+
+	if (onDSi) {
+		iprintf("Press A,B,X,Y to install.\n\n");
+	} else {
+		iprintf("Can't install on this console!\n");
+	}
+
+	iprintf("Press start to exit.\n");
 
 	int buttonseq[] = { KEY_A, KEY_B, KEY_X, KEY_Y, -1};
 
@@ -101,7 +114,7 @@ int main(int argc, char ** argv) {
 
 		if(buttonseq[seq] == -1) {
 			seq = 0;
-			installDSiLink();
+			if (onDSi) installDSiLink();
 		}
 
 		swiWaitForVBlank();
