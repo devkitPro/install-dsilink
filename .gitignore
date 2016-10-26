@@ -7,3 +7,5 @@ savefiles
 installDSiLink.nds
 classichack/cwgsum*
 cookhack/cooksum*
+*.bz2
+*.nds
