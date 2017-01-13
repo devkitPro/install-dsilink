@@ -25,17 +25,25 @@
 
 
 struct fwheader {
-	int	arm7FWaddress, arm7load, arm7size, arm7execute;
-	int	arm9FWaddress, arm9load, arm9size, arm9execute;
+	void *arm7FWaddress;
+	void *arm7load;
+	unsigned int arm7size;
+	void *arm7execute;
+
+	void *arm9FWaddress;
+	void *arm9load;
+	unsigned int arm9size;
+	void *arm9execute;
+
 };
 
 char booter[2048];
-int fwbase = 0x10000;
+char *fwbase = (char *)0x10000;
 
 
 char readbuf[256];
 
-bool fwWriteBinary(int address, void *buffer, int size) {
+bool fwWriteBinary(void *address, void *buffer, int size) {
 
 	int blocks = (size + 255) /256;
 
@@ -45,11 +53,11 @@ bool fwWriteBinary(int address, void *buffer, int size) {
 
 		iprintf("writing block %d of %d\r", i+1, blocks);
 
-		readFirmware(address, readbuf, 256);
+		readFirmware((u32)address, readbuf, 256);
 
 		if (memcmp(readbuf,buffer,256)) {
-			writeFirmware(address,buffer,256);
-			readFirmware(address, readbuf, 256);
+			writeFirmware((u32)address,buffer,256);
+			readFirmware((u32)address, readbuf, 256);
 			if (memcmp(readbuf,buffer,256)) break;
 		}
 
@@ -98,9 +106,6 @@ void installDSiLink() {
 		iprintf ("failed writing boot code\n");
 		return;
 	}
-
-
-
 }
 
 char firmware_buffer[512];
@@ -111,6 +116,8 @@ int main(int argc, char ** argv) {
 	consoleDemoInit();
 	iprintf("DSi dslink installer.\n\n");
 
+	readFirmware(0, firmware_buffer, 512);
+	// FIXME first read is blank on DSi
 	readFirmware(0, firmware_buffer, 512);
 
 	bool onDSi = (firmware_buffer[29] == 0x57);
