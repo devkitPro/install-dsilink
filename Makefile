@@ -153,6 +153,7 @@ clean:
 	$(MAKE) -C cookhack clean
 	$(MAKE) -C classichack clean
 	$(MAKE) -C tblhack clean
+	$(MAKE) -C dslink clean
 
 
 #---------------------------------------------------------------------------------
