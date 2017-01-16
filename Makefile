@@ -12,7 +12,7 @@ export TOPDIR		:=	$(CURDIR)
 SAVEFILES	:=	VCKV.SAV VCKE.SAV VCKS.SAV VCKF.SAV VCKI.SAV VCKD.SAV \
 	 		VCWV.SAV VCWE.SAV VCWF.SAV VBLE.SAV VBLV.SAV
 
-.PHONY: dslink/dslink.nds
+.PHONY: checkdslink
 
 #---------------------------------------------------------------------------------
 # canned command sequence for binary data
@@ -28,6 +28,7 @@ endef
 # main targets
 #---------------------------------------------------------------------------------
 all: \
+	checkdslink \
 	data build savefiles \
 	savefiles/VCKD.SAV \
 	savefiles/VCKE.SAV \
@@ -71,6 +72,9 @@ installDSiLink.elf: \
 
 installDSiLink.elf:
 	$(CC) -specs=ds_arm9.specs $^ -L$(DEVKITPRO)/libnds/lib -lnds9 -o $@
+
+checkdslink:
+	$(MAKE) -C dslink dslink.nds
 
 dslink/dslink.nds:
 	$(MAKE) -C dslink dslink.nds
