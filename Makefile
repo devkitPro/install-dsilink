@@ -14,6 +14,8 @@ SAVEFILES	:=	VCKV.SAV VCKE.SAV VCKS.SAV VCKF.SAV VCKI.SAV VCKD.SAV \
 
 .PHONY: checkdslink
 
+VERSION	:= $(shell cd dslink && git describe --abbrev=0 --tags)
+
 #---------------------------------------------------------------------------------
 # canned command sequence for binary data
 #---------------------------------------------------------------------------------
@@ -162,5 +164,5 @@ clean:
 
 #---------------------------------------------------------------------------------
 dist:
-	rm -f dslink.tar.bz2
-	tar -cvjf dslink.tar.bz2 README.html savefiles dslink.nds installDSiLink.nds host
+	rm -f dslink-*.tar.bz2
+	tar -cvjf dslink-$(VERSION).tar.bz2 README.html savefiles dslink.nds installDSiLink.nds host
